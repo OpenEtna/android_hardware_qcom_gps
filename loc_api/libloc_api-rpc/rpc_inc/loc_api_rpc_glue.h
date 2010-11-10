@@ -58,6 +58,7 @@ typedef unsigned char boolean;
 #define FALSE 0
 
 extern int loc_api_glue_init(void);
+extern int loc_api_glue_deinit(void);
 extern int loc_api_null(void);
 
 typedef int32 (loc_event_cb_f_type)(

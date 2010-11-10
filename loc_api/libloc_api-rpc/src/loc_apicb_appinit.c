@@ -54,8 +54,8 @@ void loc_apicb_app_deinit(void)
     {
         return;
     }
+    svc_unregister(svrPort, LOC_APICBPROG, LOC_APICBVERS_0001);
     xprt_unregister(svrPort);
     svc_destroy(svrPort);
-    //svc_unregister(svrPort, LOC_APICBPROG, LOC_APICBVERS_0001);
     svrPort = NULL;
 }

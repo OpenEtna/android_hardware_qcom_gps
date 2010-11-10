@@ -184,6 +184,29 @@ int loc_api_glue_init(void)
     return 1;
 }
 
+/*===========================================================================
+
+FUNCTION loc_api_glue_deinit
+
+DESCRIPTION
+   De-initiates the RPC client
+
+RETURN VALUE
+   1 for success
+   0 for failure
+
+===========================================================================*/
+int loc_api_glue_deinit(void)
+{
+    loc_apicb_app_deinit();
+    if (loc_api_clnt != NULL)
+    {
+        clnt_destroy(loc_api_clnt);
+        loc_api_clnt = NULL;
+    }
+    return 1;
+}
+
 rpc_loc_client_handle_type loc_open (
         rpc_loc_event_mask_type  event_reg_mask,
         loc_event_cb_f_type      *event_callback

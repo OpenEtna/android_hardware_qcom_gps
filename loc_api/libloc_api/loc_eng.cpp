@@ -275,7 +275,7 @@ static void loc_eng_cleanup()
     pthread_cond_destroy  (&loc_eng_data.ioctl_data.cb_arrived_cond);
 
     // RPC glue code
-    loc_apicb_app_deinit();
+    loc_api_glue_deinit();
 }
 
 
