@@ -856,6 +856,8 @@ static void loc_eng_report_sv (const rpc_loc_gnss_info_s_type *gnss_report_ptr)
                 {
                     continue;
                 }
+            } else {
+                continue;
             }
 
             if (sv_info_ptr->valid_mask & RPC_LOC_SV_INFO_VALID_SNR)
