@@ -31,7 +31,7 @@ $Header: $
 $DateTime: $
 $Author: $
 ======================================================================*/
-#define LOG_NDDEBUG 0
+//#define LOG_NDEBUG 0
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -52,8 +52,8 @@ $Author: $
 #include <utils/Log.h>
 
 // comment this out to enable logging
-// #undef LOGD
-// #define LOGD(...) {}
+#undef LOGD
+#define LOGD(...) {}
 
 // Function declarations
 static boolean loc_eng_ioctl_setup_cb(
@@ -164,7 +164,7 @@ static boolean loc_eng_ioctl_setup_cb(
     pthread_mutex_lock(&ioctl_cb_data_ptr->cb_data_mutex);
     if (ioctl_cb_data_ptr->cb_is_selected == TRUE)
     {
-        LOGD ("loc_eng_ioctl_setup_cb: ERROR, another ioctl in progress \n");
+        LOGE ("loc_eng_ioctl_setup_cb: ERROR, another ioctl in progress \n");
         ret_val = FALSE;
     }
     else
@@ -222,7 +222,7 @@ boolean loc_eng_ioctl_wait_cb(
     do {
         if (ioctl_cb_data_ptr->cb_is_selected == FALSE)
         {
-            LOGD ("loc_eng_ioctl_wait_cb: ERROR called when cb_is_waiting is set to FALSE \n");
+            LOGE ("loc_eng_ioctl_wait_cb: ERROR called when cb_is_waiting is set to FALSE \n");
             ret_val = FALSE;
             break;
         }
@@ -257,6 +257,7 @@ boolean loc_eng_ioctl_wait_cb(
         }
         else
         {
+            LOGE("loc_eng_ioctl_wait_cb: timed out waiting for response!");
             ret_val = FALSE;
         }
 
@@ -280,6 +281,7 @@ boolean loc_eng_ioctl_wait_cb(
         }
         else
         {
+            LOGE ("loc_eng_ioctl_wait_cb: ioctl returned RPC_LOC_API_FAILED");
             ret_val = FALSE;
         }
     }
@@ -321,13 +323,13 @@ boolean loc_eng_ioctl_process_cb (
     pthread_mutex_lock(&ioctl_cb_data_ptr->cb_data_mutex);
     if (client_handle != ioctl_cb_data_ptr->client_handle)
     {
-        LOGD ("loc_eng_ioctl_process_cb: client handle mismatch, received = %d, expected = %d \n",
+        LOGE ("loc_eng_ioctl_process_cb: client handle mismatch, received = %d, expected = %d \n",
                 (int32) client_handle, (int32) ioctl_cb_data_ptr->client_handle);
         ret_val = FALSE;
     }
     else if (cb_data_ptr->type != ioctl_cb_data_ptr->ioctl_type)
     {
-        LOGD ("loc_eng_ioctl_process_cb: ioctl type mismatch, received = %d, expected = %d \n",
+        LOGE ("loc_eng_ioctl_process_cb: ioctl type mismatch, received = %d, expected = %d \n",
                  cb_data_ptr->type, ioctl_cb_data_ptr->ioctl_type);
         ret_val = FALSE;
     }
@@ -339,9 +341,9 @@ boolean loc_eng_ioctl_process_cb (
 
         ioctl_cb_data_ptr->cb_has_arrived = TRUE;
 
-        LOGV ("loc_eng_ioctl_process_cb: callback arrived for client = %d, ioctl = %d, status = %d\n",
+        LOGV ("loc_eng_ioctl_process_cb: callback arrived for client = %d, ioctl = %d, status = %d (%s)\n",
                 (int32) ioctl_cb_data_ptr->client_handle, ioctl_cb_data_ptr->ioctl_type,
-                (int32) ioctl_cb_data_ptr->cb_payload.status);
+                (int32) ioctl_cb_data_ptr->cb_payload.status, ((int32) ioctl_cb_data_ptr->cb_payload.status ==0) ? "SUCCESS" : "FAILED");
 
         ret_val = TRUE;
     }

@@ -37,7 +37,7 @@ when       who      what, where, why
                      INCLUDE FILES FOR MODULE
 
 ======================================================================*/
-//#define LOG_NDDEBUG 0
+#define LOG_NDEBUG 0
 
 #include <stdio.h>
 #include <pthread.h>
@@ -67,8 +67,8 @@ when       who      what, where, why
 #include <utils/Log.h>
 
 /* Comment this out to enable logging */
-#undef LOGD
-#define LOGD(...) {}
+//#undef LOGD
+//#define LOGD(...) {}
 
 /*=====================================================================
      External declarations

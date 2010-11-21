@@ -26,7 +26,7 @@ when       who      what, where, why
 $Id:
 ======================================================================*/
 
-#define LOG_NDDEBUG 0
+#define LOG_NDEBUG 0
 #define LOG_NIDEBUG 0
 
 #include <stdio.h>

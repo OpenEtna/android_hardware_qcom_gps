@@ -31,7 +31,7 @@ $DateTime: $
 $Author: $
 ======================================================================*/
 
-#define LOG_NDDEBUG 0
+#define LOG_NDEBUG 0
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -914,15 +914,21 @@ static void loc_eng_report_status (const rpc_loc_status_event_s_type *status_rep
     {
         if (status_report_ptr->payload.rpc_loc_status_event_payload_u_type_u.engine_state == RPC_LOC_ENGINE_STATE_ON)
         {
+            LOGV ("loc_eng_report_status: status = GPS_STATUS_SESSION_BEGIN", status_report_ptr->event);
             // GPS_STATUS_SESSION_BEGIN implies GPS_STATUS_ENGINE_ON
             status.status = GPS_STATUS_SESSION_BEGIN;
             loc_eng_data.status_cb (&status);
         }
         else if (status_report_ptr->payload.rpc_loc_status_event_payload_u_type_u.engine_state == RPC_LOC_ENGINE_STATE_OFF)
         {
+            LOGV("loc_eng_report_status: status = GPS_STATUS_SESSION_END");
             // GPS_STATUS_SESSION_END implies GPS_STATUS_ENGINE_OFF
             status.status = GPS_STATUS_ENGINE_OFF;
             loc_eng_data.status_cb (&status);
+        }
+        else
+        {
+            LOGE("loc_eng_report_status: unhandled status %d", status_report_ptr->payload.rpc_loc_status_event_payload_u_type_u.engine_state);
         }
     }
 
@@ -942,6 +948,8 @@ static void loc_eng_report_status (const rpc_loc_status_event_s_type *status_rep
 
 static void loc_eng_report_nmea (const rpc_loc_nmea_report_s_type *nmea_report_ptr)
 {
+    LOGV("loc_eng_report_nmea: entered");
+
     if (loc_eng_data.nmea_cb != NULL)
     {
         struct timeval tv;
@@ -1269,6 +1277,8 @@ SIDE EFFECTS
 static void loc_eng_process_loc_event (rpc_loc_event_mask_type loc_event,
         rpc_loc_event_payload_u_type* loc_event_payload)
 {
+    LOGD("loc_eng_process_loc_event: loc_event = %x", loc_event);
+
     if (loc_event & RPC_LOC_EVENT_PARSED_POSITION_REPORT)
     {
         loc_eng_report_position (&(loc_event_payload->rpc_loc_event_payload_u_type_u.parsed_location_report));
