@@ -72,9 +72,6 @@ typedef struct
     rpc_loc_event_mask_type         loc_event;
     rpc_loc_event_payload_u_type    loc_event_payload;
 
-    boolean                        data_connection_succeeded;
-    boolean                        data_connection_closed;
-    boolean                        data_connection_failed;
     // TBD:
     char                           agps_server_host[256];
     int                            agps_server_port;
