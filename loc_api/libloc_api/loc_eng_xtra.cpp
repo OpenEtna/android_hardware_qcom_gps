@@ -112,8 +112,7 @@ SIDE EFFECTS
 ===========================================================================*/
 static int qct_loc_eng_inject_xtra_data(char* data, int length)
 {
-    int     rpc_ret_val = RPC_LOC_API_GENERAL_FAILURE;
-    boolean ret_val = 0;
+    int     ret_val = EINVAL;
     int     total_parts;
     uint8   part;
     uint16  part_len;
@@ -151,34 +150,23 @@ static int qct_loc_eng_inject_xtra_data(char* data, int length)
         LOGV ("qct_loc_eng_inject_xtra_data, inject part = %d, len = %d, len = %d\n", predicted_orbits_data_ptr->part, predicted_orbits_data_ptr->part_len, predicted_orbits_data_ptr->data_ptr.data_ptr_len);
         LOGV ("qct_loc_eng_inject_xtra_data, total part = %d, len = %d \n", predicted_orbits_data_ptr->part, predicted_orbits_data_ptr->part_len);
 
-        if (part < total_parts)
-        {
-            // No callback in this case
-            rpc_ret_val = loc_ioctl (loc_eng_data.client_handle,
-                                  RPC_LOC_IOCTL_INJECT_PREDICTED_ORBITS_DATA,
-                                  &ioctl_data);
+        ret_val = loc_eng_ioctl (loc_eng_data.client_handle,
+                              RPC_LOC_IOCTL_INJECT_PREDICTED_ORBITS_DATA,
+                              &ioctl_data,
+                              LOC_XTRA_INJECT_DEFAULT_TIMEOUT, NULL);
 
-            if (rpc_ret_val != RPC_LOC_API_SUCCESS)
-            {
-                LOGE ("loc_ioctl for xtra returned %d \n", rpc_ret_val);
-                ret_val = EINVAL; // return error
-                break;
-            }
-        }
-        else // part == total_parts
+        if (ret_val != RPC_LOC_API_SUCCESS)
         {
-            // Last part injection, will need to wait for callback
-            ret_val = loc_eng_ioctl (loc_eng_data.client_handle,
-                                  RPC_LOC_IOCTL_INJECT_PREDICTED_ORBITS_DATA,
-                                  &ioctl_data,
-                                  LOC_XTRA_INJECT_DEFAULT_TIMEOUT,
-                                  NULL /* No output information is expected*/);
-            break; // done with injection
+            LOGE ("loc_ioctl for xtra returned %d\n", ret_val);
+            ret_val = EINVAL; // return error
+            break;
         }
 
         len_injected += predicted_orbits_data_ptr->part_len;
         LOGV ("loc_ioctl for xtra len injected %d \n", len_injected);
     }
+
+    LOGE ("qct_loc_eng_inject_xtra_data returning: %d\n", ret_val);
 
     return ret_val;
 }
