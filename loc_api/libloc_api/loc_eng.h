@@ -51,6 +51,13 @@ typedef unsigned char boolean;
 
 #define LOC_IOCTL_DEFAULT_TIMEOUT 1000 // 1000 milli-seconds
 
+typedef struct work_item work_item;
+struct work_item {
+    work_item                      *next;
+    rpc_loc_event_mask_type         loc_event;
+    rpc_loc_event_payload_u_type    loc_event_payload;
+};
+
 // Module data
 typedef struct
 {
@@ -67,10 +74,6 @@ typedef struct
     loc_eng_xtra_data_s_type       xtra_module_data;
 
     loc_eng_ioctl_data_s_type      ioctl_data;
-
-    // data from loc_event_cb
-    rpc_loc_event_mask_type         loc_event;
-    rpc_loc_event_payload_u_type    loc_event_payload;
 
     // TBD:
     char                           agps_server_host[256];
@@ -94,6 +97,10 @@ typedef struct
     pthread_mutex_t                deferred_action_mutex;
     // Condition variable used by deferred action thread
     pthread_cond_t                 deferred_action_cond;
+
+    // work queue for event callback
+    work_item                     *work_queue;
+
 } loc_eng_data_s_type;
    
 extern loc_eng_data_s_type loc_eng_data;

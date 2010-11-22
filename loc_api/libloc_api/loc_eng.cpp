@@ -198,11 +198,12 @@ static int loc_eng_init(GpsCallbacks* callbacks)
                                     RPC_LOC_EVENT_NMEA_POSITION_REPORT |
                                     RPC_LOC_EVENT_NI_NOTIFY_VERIFY_REQUEST;
 
+    loc_eng_data.work_queue = NULL;
+
     pthread_mutex_init (&(loc_eng_data.deferred_action_mutex), NULL);
     pthread_cond_init  (&(loc_eng_data.deferred_action_cond) , NULL);
     loc_eng_data.deferred_action_thread_need_exit = FALSE;
  
-    loc_eng_data.loc_event = 0;
     memset (loc_eng_data.apn_name, 0, sizeof (loc_eng_data.apn_name));
 
     loc_eng_data.aiding_data_for_deletion = 0;
@@ -257,6 +258,9 @@ SIDE EFFECTS
 ===========================================================================*/
 static void loc_eng_cleanup()
 {
+
+    work_item *work;
+
     if (loc_eng_data.deferred_action_thread)
     {
         /* Terminate deferred action working thread */
@@ -272,6 +276,17 @@ static void loc_eng_cleanup()
 
     // clean up
     (void) loc_close (loc_eng_data.client_handle);
+
+    // lock the queue
+    pthread_mutex_lock(&loc_eng_data.deferred_action_mutex);
+    // free any remaining work items
+    while(loc_eng_data.work_queue) {
+        work = loc_eng_data.work_queue;
+        loc_eng_data.work_queue = work->next;
+        free(work);
+    }
+    // unlock the queue
+    pthread_mutex_unlock(&loc_eng_data.deferred_action_mutex);
 
     pthread_mutex_destroy (&loc_eng_data.deferred_action_mutex);
     pthread_cond_destroy  (&loc_eng_data.deferred_action_cond);
@@ -680,13 +695,27 @@ static int32 loc_event_cb(
     const rpc_loc_event_payload_u_type*  loc_event_payload
     )
 {
+
+    work_item *work, *queue;
+
     LOGV ("loc_event_cb, client = %d, loc_event = 0x%x", (int32) client_handle, (uint32) loc_event);
     if (client_handle == loc_eng_data.client_handle)
     {
+        // create work queue item
+        work = (work_item*)malloc(sizeof(work_item));
+        work->next = NULL;
+        work->loc_event = loc_event;
+        memcpy(&work->loc_event_payload, loc_event_payload, sizeof(*loc_event_payload));
+        // lock the queue
         pthread_mutex_lock(&loc_eng_data.deferred_action_mutex);
-        loc_eng_data.loc_event = loc_event;
-        memcpy(&loc_eng_data.loc_event_payload, loc_event_payload, sizeof(*loc_event_payload));
-
+        // add item to end of queue
+        if (!loc_eng_data.work_queue) loc_eng_data.work_queue = work;
+        else {
+            queue = loc_eng_data.work_queue;
+            while(queue->next) queue = queue->next;
+            queue->next = work;
+        }
+        // signal deferred action thread
         pthread_cond_signal  (&loc_eng_data.deferred_action_cond);
         pthread_mutex_unlock (&loc_eng_data.deferred_action_mutex);
     }
@@ -927,7 +956,7 @@ static void loc_eng_report_status (const rpc_loc_status_event_s_type *status_rep
     {
         if (status_report_ptr->payload.rpc_loc_status_event_payload_u_type_u.engine_state == RPC_LOC_ENGINE_STATE_ON)
         {
-            LOGV ("loc_eng_report_status: status = GPS_STATUS_SESSION_BEGIN", status_report_ptr->event);
+            LOGV("loc_eng_report_status: status = GPS_STATUS_SESSION_BEGIN");
             // GPS_STATUS_SESSION_BEGIN implies GPS_STATUS_ENGINE_ON
             status.status = GPS_STATUS_SESSION_BEGIN;
             loc_eng_data.status_cb (&status);
@@ -1347,30 +1376,51 @@ SIDE EFFECTS
 ===========================================================================*/
 static void* loc_eng_process_deferred_action (void* arg)
 {
+
+    work_item *work;
+
     LOGD("loc_eng_process_deferred_action started\n");
 
     // make sure we do not run in background scheduling group
     set_sched_policy(gettid(), SP_FOREGROUND);
 
-    pthread_mutex_lock(&loc_eng_data.deferred_action_mutex);
-    while (1)
-    {
-        LOGD("loc_eng_process_deferred_action waiting for work");
-        loc_eng_data.loc_event = 0;
-        loc_eng_data.agps_status = 0;
-        pthread_cond_wait(&loc_eng_data.deferred_action_cond,
-                            &loc_eng_data.deferred_action_mutex);
+    while (1) {
 
-        LOGD("loc_eng_process_deferred_action got work");
-        if (loc_eng_data.deferred_action_thread_need_exit == TRUE)
-        {
-            break;
+        if (loc_eng_data.deferred_action_thread_need_exit == TRUE) break;
+
+        // lock the queue
+        pthread_mutex_lock(&loc_eng_data.deferred_action_mutex);
+
+        if (loc_eng_data.work_queue) {
+            LOGD("loc_eng_process_deferred_action processing existing work");
+        } else {
+            LOGD("loc_eng_process_deferred_action waiting for work");
+            pthread_cond_wait(&loc_eng_data.deferred_action_cond,
+                              &loc_eng_data.deferred_action_mutex);
+            LOGD("loc_eng_process_deferred_action processing new work");
         }
 
-        if (loc_eng_data.loc_event != 0) {
+        // get head of queue
+        work = loc_eng_data.work_queue;
+
+        // we can be notified without work (e.g. thread shutdown)
+        if (!work) {
+            pthread_mutex_unlock(&loc_eng_data.deferred_action_mutex);
+            continue;
+        }
+
+        // remove first item from queue
+        loc_eng_data.work_queue = work->next;
+        // unlock the queue
+        pthread_mutex_unlock(&loc_eng_data.deferred_action_mutex);
+
+        if (work->loc_event != 0) {
             //this may set loc_eng_data.agps_status.status
-            loc_eng_process_loc_event(loc_eng_data.loc_event, &loc_eng_data.loc_event_payload);
+            loc_eng_process_loc_event(work->loc_event, &work->loc_event_payload);
         }
+
+        // dispose of work item
+        free(work);
 
         if (loc_eng_data.agps_status != 0 && loc_eng_data.agps_status_cb) {
             LOGD("loc_eng_process_deferred_action calling agps_status_cb(%x)", loc_eng_data.agps_status);
@@ -1383,7 +1433,7 @@ static void* loc_eng_process_deferred_action (void* arg)
         }
 
     }
-    pthread_mutex_unlock(&(loc_eng_data.deferred_action_mutex));
+
     LOGD("loc_eng_process_deferred_action thread exiting\n");
     return NULL;
 }
