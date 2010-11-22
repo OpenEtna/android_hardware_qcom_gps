@@ -1227,7 +1227,6 @@ static void loc_eng_process_atl_deferred_action (boolean data_connection_succeed
     rpc_loc_server_close_status_s_type *conn_close_status_ptr;
     rpc_loc_ioctl_data_u_type           ioctl_data;
     boolean                             ret_val;
-    int                                 agps_status = -1;
 
     LOGV("loc_eng_process_atl_deferred_action, agps_status = %d\n", loc_eng_data.agps_status);
 
@@ -1377,6 +1376,7 @@ SIDE EFFECTS
 static void* loc_eng_process_deferred_action (void* arg)
 {
 
+    int last_agps_status;
     work_item *work;
 
     LOGD("loc_eng_process_deferred_action started\n");
@@ -1414,6 +1414,9 @@ static void* loc_eng_process_deferred_action (void* arg)
         // unlock the queue
         pthread_mutex_unlock(&loc_eng_data.deferred_action_mutex);
 
+        // save current agps_status
+        last_agps_status = loc_eng_data.agps_status;
+
         if (work->loc_event != 0) {
             //this may set loc_eng_data.agps_status.status
             loc_eng_process_loc_event(work->loc_event, &work->loc_event_payload);
@@ -1422,7 +1425,11 @@ static void* loc_eng_process_deferred_action (void* arg)
         // dispose of work item
         free(work);
 
-        if (loc_eng_data.agps_status != 0 && loc_eng_data.agps_status_cb) {
+        // callback if status has changed after this event
+        if (loc_eng_data.agps_status != 0 &&
+            loc_eng_data.agps_status != last_agps_status &&
+            loc_eng_data.agps_status_cb) {
+
             LOGD("loc_eng_process_deferred_action calling agps_status_cb(%x)", loc_eng_data.agps_status);
 
             AGpsStatus status;
