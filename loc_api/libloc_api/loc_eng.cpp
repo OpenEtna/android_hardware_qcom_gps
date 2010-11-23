@@ -832,14 +832,16 @@ static void loc_eng_report_sv (const rpc_loc_gnss_info_s_type *gnss_report_ptr)
 {
     GpsSvStatus     SvStatus;
     int             num_svs_max, i;
-	const rpc_loc_sv_info_s_type *sv_info_ptr;
+    const rpc_loc_sv_info_s_type *sv_info_ptr;
 
     LOGV ("loc_eng_report_sv: valid_mask = 0x%x, num of sv = %d\n",
             (uint32) gnss_report_ptr->valid_mask,
             gnss_report_ptr->sv_count);
 
-    num_svs_max = 0;
     memset (&SvStatus, 0, sizeof (GpsSvStatus));
+    SvStatus.num_svs = 0;
+
+    num_svs_max = 0;
     if (gnss_report_ptr->valid_mask & RPC_LOC_GNSS_INFO_VALID_SV_COUNT)
     {
         num_svs_max = gnss_report_ptr->sv_count;
@@ -851,11 +853,13 @@ static void loc_eng_report_sv (const rpc_loc_gnss_info_s_type *gnss_report_ptr)
 
     if (gnss_report_ptr->valid_mask & RPC_LOC_GNSS_INFO_VALID_SV_LIST)
     {
-        SvStatus.num_svs = 0;
-
         for (i = 0; i < num_svs_max; i++)
         {
             sv_info_ptr = &(gnss_report_ptr->sv_list.sv_list_val[i]);
+
+            LOGV ("vm=0x%x, sys=%d, prn=%d, hs=%d, ps=%d, eph=%d, alm=%d, el=%f, az=%f, snr=%f\n", sv_info_ptr->valid_mask, sv_info_ptr->system, sv_info_ptr->prn, sv_info_ptr->health_status,
+                sv_info_ptr->process_status, sv_info_ptr->has_eph, sv_info_ptr->has_alm, sv_info_ptr->elevation, sv_info_ptr->azimuth, sv_info_ptr->snr);
+
             if (sv_info_ptr->valid_mask & RPC_LOC_SV_INFO_VALID_SYSTEM)
             {
                 if (sv_info_ptr->system == RPC_LOC_SV_SYSTEM_GPS)
@@ -921,8 +925,9 @@ static void loc_eng_report_sv (const rpc_loc_gnss_info_s_type *gnss_report_ptr)
         }
     }
 
-    LOGV ("num_svs = %d, eph mask = %d, alm mask = %d\n", SvStatus.num_svs, SvStatus.ephemeris_mask, SvStatus.almanac_mask );
-    if ((SvStatus.num_svs != 0) && (loc_eng_data.sv_status_cb != NULL))
+    LOGV ("loc_eng_report_sv: num_svs = %d, eph mask = 0x%x, alm mask = 0x%x, fix mask = 0x%x\n",
+          SvStatus.num_svs, SvStatus.ephemeris_mask, SvStatus.almanac_mask, SvStatus.used_in_fix_mask);
+    if (loc_eng_data.sv_status_cb != NULL)
     {
         loc_eng_data.sv_status_cb(&SvStatus);
     }
@@ -1010,7 +1015,8 @@ SIDE EFFECTS
 ===========================================================================*/
 static void loc_eng_process_conn_request (const rpc_loc_server_request_s_type *server_request_ptr)
 {
-    LOGD ("loc_event_cb: get loc event location server request, event = %d\n", server_request_ptr->event);
+    LOGD ("loc_event_cb: get loc event location server request, event=%d, conn_handle=%d\n",
+        server_request_ptr->event, server_request_ptr->payload.rpc_loc_server_request_u_type_u.open_req.conn_handle);
 
     // This implemenation is based on the fact that modem now at any time has only one data connection for AGPS at any given time
     if (server_request_ptr->event == RPC_LOC_SERVER_REQUEST_OPEN)
@@ -1018,7 +1024,7 @@ static void loc_eng_process_conn_request (const rpc_loc_server_request_s_type *s
         loc_eng_data.conn_handle = server_request_ptr->payload.rpc_loc_server_request_u_type_u.open_req.conn_handle;
         loc_eng_data.agps_status = GPS_REQUEST_AGPS_DATA_CONN;
     }
-    else
+    else if (server_request_ptr->event == RPC_LOC_SERVER_REQUEST_CLOSE)
     {
         loc_eng_data.conn_handle = server_request_ptr->payload.rpc_loc_server_request_u_type_u.close_req.conn_handle;
         loc_eng_data.agps_status = GPS_RELEASE_AGPS_DATA_CONN;

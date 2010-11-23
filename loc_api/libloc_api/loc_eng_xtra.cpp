@@ -148,8 +148,9 @@ static int qct_loc_eng_inject_xtra_data(char* data, int length)
         predicted_orbits_data_ptr->data_ptr.data_ptr_len = predicted_orbits_data_ptr->part_len;
         predicted_orbits_data_ptr->data_ptr.data_ptr_val = data + len_injected;
 
-        LOGV ("qct_loc_eng_inject_xtra_data, inject part = %d, len = %d, len = %d\n", predicted_orbits_data_ptr->part, predicted_orbits_data_ptr->part_len, predicted_orbits_data_ptr->data_ptr.data_ptr_len);
-        LOGV ("qct_loc_eng_inject_xtra_data, total part = %d, len = %d \n", predicted_orbits_data_ptr->part, predicted_orbits_data_ptr->part_len);
+        LOGV ("qct_loc_eng_inject_xtra_data, inject part = %d/%d, len = %d, len = %d\n",
+              predicted_orbits_data_ptr->part, predicted_orbits_data_ptr->total_parts,
+              predicted_orbits_data_ptr->part_len, predicted_orbits_data_ptr->data_ptr.data_ptr_len);
 
         if (part < total_parts)
         {
