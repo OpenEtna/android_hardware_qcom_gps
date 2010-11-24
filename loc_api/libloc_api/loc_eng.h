@@ -101,6 +101,9 @@ typedef struct
     // work queue for event callback
     work_item                     *work_queue;
 
+    // used for workaround for lack of sats in fix info
+    int64_t                        last_fix_time;
+
 } loc_eng_data_s_type;
    
 extern loc_eng_data_s_type loc_eng_data;

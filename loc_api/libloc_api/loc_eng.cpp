@@ -199,6 +199,7 @@ static int loc_eng_init(GpsCallbacks* callbacks)
                                     RPC_LOC_EVENT_NI_NOTIFY_VERIFY_REQUEST;
 
     loc_eng_data.work_queue = NULL;
+    loc_eng_data.last_fix_time = 0;
 
     pthread_mutex_init (&(loc_eng_data.deferred_action_mutex), NULL);
     pthread_cond_init  (&(loc_eng_data.deferred_action_cond) , NULL);
@@ -767,6 +768,9 @@ static void loc_eng_report_position (const rpc_loc_parsed_position_s_type *locat
                 location.flags    |= GPS_LOCATION_HAS_LAT_LONG;
                 location.latitude  = location_report_ptr->latitude;
                 location.longitude = location_report_ptr->longitude;
+
+                // remember when we got this fix
+                loc_eng_data.last_fix_time = android::elapsedRealtime();
             }
 
             if (location_report_ptr->valid_mask &  RPC_LOC_POS_VALID_ALTITUDE_WRT_ELLIPSOID )
@@ -923,6 +927,12 @@ static void loc_eng_report_sv (const rpc_loc_gnss_info_s_type *gnss_report_ptr)
 
             SvStatus.num_svs++;
         }
+    }
+
+    // hack to work around fact that device does not report which sats are used in the fix
+    // some apps don't accept the fix if it they think it came from enough sats
+    if ((SvStatus.used_in_fix_mask == 0) && (android::elapsedRealtime() < loc_eng_data.last_fix_time + 10000)) {
+        SvStatus.used_in_fix_mask = SvStatus.ephemeris_mask;
     }
 
     LOGV ("loc_eng_report_sv: num_svs = %d, eph mask = 0x%x, alm mask = 0x%x, fix mask = 0x%x\n",
