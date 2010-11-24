@@ -114,8 +114,8 @@ static int qct_loc_eng_inject_xtra_data(char* data, int length)
 {
     int     rpc_ret_val = RPC_LOC_API_GENERAL_FAILURE;
     boolean ret_val = 0;
-    int     total_parts;
     uint8   part;
+    uint8   total_parts;
     uint16  part_len;
     uint16  len_injected;
     rpc_loc_ioctl_data_u_type            ioctl_data;
@@ -174,7 +174,11 @@ static int qct_loc_eng_inject_xtra_data(char* data, int length)
                                   &ioctl_data,
                                   LOC_XTRA_INJECT_DEFAULT_TIMEOUT,
                                   NULL /* No output information is expected*/);
-            break; // done with injection
+            if (ret_val != TRUE)
+            {
+                LOGE("loc_eng_ioctl for xtra returned FALSE\n");
+                break;
+            }
         }
 
         len_injected += predicted_orbits_data_ptr->part_len;
