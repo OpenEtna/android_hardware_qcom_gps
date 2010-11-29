@@ -281,7 +281,7 @@ boolean loc_eng_ioctl_wait_cb(
         }
         else
         {
-            LOGE ("loc_eng_ioctl_wait_cb: ioctl returned RPC_LOC_API_FAILED");
+            LOGE ("loc_eng_ioctl_wait_cb: ioctl failed, returned %d", ioctl_cb_data_ptr->cb_payload.status);
             ret_val = FALSE;
         }
     }

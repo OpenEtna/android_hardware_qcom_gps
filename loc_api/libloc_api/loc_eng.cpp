@@ -517,7 +517,31 @@ static int loc_eng_inject_time (GpsUtcTime time, int64_t timeReference, int unce
 
 static int loc_eng_inject_location (double latitude, double longitude, float accuracy)
 {
-    /* not yet implemented */
+    boolean                         ret_val;
+    rpc_loc_ioctl_data_u_type       ioctl_data;
+    rpc_loc_assist_data_pos_s_type *pos_info_ptr;
+
+    LOGD("loc_eng_inject_location lat=%f, lon=%f, acc=%f\n", latitude, longitude, accuracy);
+
+    ioctl_data.disc = RPC_LOC_IOCTL_INJECT_UTC_TIME;
+
+    pos_info_ptr = &(ioctl_data.rpc_loc_ioctl_data_u_type_u.assistance_data_position);
+    memset(pos_info_ptr, 0, sizeof(rpc_loc_assist_data_pos_s_type));
+
+    pos_info_ptr->valid_mask = RPC_LOC_ASSIST_POS_VALID_LATITUDE |
+                               RPC_LOC_ASSIST_POS_VALID_LONGITUDE |
+                               RPC_LOC_ASSIST_POS_VALID_HOR_UNC_CIRCULAR;
+    pos_info_ptr->latitude  = latitude;
+    pos_info_ptr->longitude = longitude;
+    pos_info_ptr->hor_unc_circular = accuracy;
+
+    ret_val = loc_eng_ioctl (loc_eng_data.client_handle, RPC_LOC_IOCTL_INJECT_POSITION,
+                             &ioctl_data, LOC_IOCTL_DEFAULT_TIMEOUT, NULL);
+
+    if (ret_val != TRUE) {
+        LOGD("loc_eng_inject_location failed\n");
+    }
+
     return 0;
 }
 
