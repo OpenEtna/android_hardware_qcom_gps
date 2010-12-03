@@ -1369,6 +1369,7 @@ static void loc_eng_process_loc_event (rpc_loc_event_mask_type loc_event,
             if (loc_eng_data.xtra_module_data.download_request_cb != NULL) {
                 loc_eng_data.xtra_module_data.download_request_cb();
             } else {
+                LOGD("loc_event_cb: no xtra callback, will download when callback registered");
                 loc_eng_data.xtra_module_data.download_request_pending = TRUE;
             }
             pthread_mutex_unlock(&loc_eng_data.xtra_module_data.xtra_mutex);

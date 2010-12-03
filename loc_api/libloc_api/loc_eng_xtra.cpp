@@ -87,6 +87,7 @@ static int qct_loc_eng_xtra_init (GpsXtraCallbacks* callbacks)
     pthread_mutex_lock(&loc_eng_data.xtra_module_data.xtra_mutex);
     loc_eng_data.xtra_module_data.download_request_cb = callbacks->download_request_cb;
     if (loc_eng_data.xtra_module_data.download_request_pending == TRUE) {
+        LOGD("qct_loc_eng_xtra_init: callback for previous xtra download request");
         loc_eng_data.xtra_module_data.download_request_cb();
         loc_eng_data.xtra_module_data.download_request_pending == FALSE;
     }
