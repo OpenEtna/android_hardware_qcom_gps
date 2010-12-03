@@ -89,7 +89,7 @@ static int qct_loc_eng_xtra_init (GpsXtraCallbacks* callbacks)
     if (loc_eng_data.xtra_module_data.download_request_pending == TRUE) {
         LOGD("qct_loc_eng_xtra_init: callback for previous xtra download request");
         loc_eng_data.xtra_module_data.download_request_cb();
-        loc_eng_data.xtra_module_data.download_request_pending == FALSE;
+        loc_eng_data.xtra_module_data.download_request_pending = FALSE;
     }
     pthread_mutex_unlock(&loc_eng_data.xtra_module_data.xtra_mutex);
 
@@ -124,7 +124,7 @@ static int qct_loc_eng_inject_xtra_data(char* data, int length)
     rpc_loc_ioctl_data_u_type            ioctl_data;
     rpc_loc_predicted_orbits_data_s_type *predicted_orbits_data_ptr;
 
-    LOGV ("qct_loc_eng_inject_xtra_data, xtra size = %d, data ptr = 0x%x\n", length, (int) data);
+    LOGV("qct_loc_eng_inject_xtra_data: xtra size = %d, data ptr = 0x%x", length, (int)data);
 
     ioctl_data.disc = RPC_LOC_IOCTL_INJECT_PREDICTED_ORBITS_DATA;
 
@@ -151,9 +151,9 @@ static int qct_loc_eng_inject_xtra_data(char* data, int length)
         predicted_orbits_data_ptr->data_ptr.data_ptr_len = predicted_orbits_data_ptr->part_len;
         predicted_orbits_data_ptr->data_ptr.data_ptr_val = data + len_injected;
 
-        LOGV ("qct_loc_eng_inject_xtra_data, inject part = %d/%d, len = %d, len = %d\n",
-              predicted_orbits_data_ptr->part, predicted_orbits_data_ptr->total_parts,
-              predicted_orbits_data_ptr->part_len, predicted_orbits_data_ptr->data_ptr.data_ptr_len);
+        LOGV("qct_loc_eng_inject_xtra_data: inject part = %d/%d, len = %d, len = %d",
+             predicted_orbits_data_ptr->part, predicted_orbits_data_ptr->total_parts,
+             predicted_orbits_data_ptr->part_len, predicted_orbits_data_ptr->data_ptr.data_ptr_len);
 
         if (part < total_parts)
         {
@@ -164,7 +164,7 @@ static int qct_loc_eng_inject_xtra_data(char* data, int length)
 
             if (rpc_ret_val != RPC_LOC_API_SUCCESS)
             {
-                LOGE ("loc_ioctl for xtra returned %d \n", rpc_ret_val);
+                LOGE("qct_loc_eng_inject_xtra_data: loc_ioctl for xtra returned %d", rpc_ret_val);
                 ret_val = EINVAL; // return error
                 break;
             }
@@ -179,13 +179,13 @@ static int qct_loc_eng_inject_xtra_data(char* data, int length)
                                   NULL /* No output information is expected*/);
             if (ret_val != TRUE)
             {
-                LOGE("loc_eng_ioctl for xtra returned FALSE\n");
+                LOGE("qct_loc_eng_inject_xtra_data: loc_eng_ioctl for xtra returned FALSE");
                 break;
             }
         }
 
         len_injected += predicted_orbits_data_ptr->part_len;
-        LOGV ("loc_ioctl for xtra len injected %d \n", len_injected);
+        LOGV("qct_loc_eng_inject_xtra_data: loc_ioctl for xtra len injected %d", len_injected);
     }
 
     return ret_val;
