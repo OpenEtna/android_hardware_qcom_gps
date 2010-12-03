@@ -84,11 +84,13 @@ SIDE EFFECTS
 ===========================================================================*/
 static int qct_loc_eng_xtra_init (GpsXtraCallbacks* callbacks)
 {
-    rpc_loc_event_mask_type event;
-    loc_eng_xtra_data_s_type *xtra_module_data_ptr;
-
-    xtra_module_data_ptr = &(loc_eng_data.xtra_module_data);
-    xtra_module_data_ptr->download_request_cb = callbacks->download_request_cb;
+    pthread_mutex_lock(&loc_eng_data.xtra_module_data.xtra_mutex);
+    loc_eng_data.xtra_module_data.download_request_cb = callbacks->download_request_cb;
+    if (loc_eng_data.xtra_module_data.download_request_pending == TRUE) {
+        loc_eng_data.xtra_module_data.download_request_cb();
+        loc_eng_data.xtra_module_data.download_request_pending == FALSE;
+    }
+    pthread_mutex_unlock(&loc_eng_data.xtra_module_data.xtra_mutex);
 
     return 0;
 }

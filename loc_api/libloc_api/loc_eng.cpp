@@ -212,6 +212,8 @@ static int loc_eng_init(GpsCallbacks* callbacks)
 
     // XTRA module data initialization
     loc_eng_data.xtra_module_data.download_request_cb = NULL;
+    loc_eng_data.xtra_module_data.download_request_pending = FALSE;
+    pthread_mutex_init(&loc_eng_data.xtra_module_data.xtra_mutex, NULL);
 
     // IOCTL module data initialization
     loc_eng_data.ioctl_data.cb_is_selected  = FALSE;
@@ -288,6 +290,8 @@ static void loc_eng_cleanup()
     }
     // unlock the queue
     pthread_mutex_unlock(&loc_eng_data.deferred_action_mutex);
+
+    pthread_mutex_destroy (&loc_eng_data.xtra_module_data.xtra_mutex);
 
     pthread_mutex_destroy (&loc_eng_data.deferred_action_mutex);
     pthread_cond_destroy  (&loc_eng_data.deferred_action_cond);
@@ -1360,11 +1364,14 @@ static void loc_eng_process_loc_event (rpc_loc_event_mask_type loc_event,
         {
             LOGD ("loc_event_cb: xtra download requst");
 
+            pthread_mutex_lock(&loc_eng_data.xtra_module_data.xtra_mutex);
             // Call Registered callback
-            if (loc_eng_data.xtra_module_data.download_request_cb != NULL)
-            {
-                loc_eng_data.xtra_module_data.download_request_cb ();
+            if (loc_eng_data.xtra_module_data.download_request_cb != NULL) {
+                loc_eng_data.xtra_module_data.download_request_cb();
+            } else {
+                loc_eng_data.xtra_module_data.download_request_pending = TRUE;
             }
+            pthread_mutex_unlock(&loc_eng_data.xtra_module_data.xtra_mutex);
         }
     }
 

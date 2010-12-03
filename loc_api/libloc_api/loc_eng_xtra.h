@@ -39,8 +39,9 @@ extern const GpsXtraInterface sLocEngXTRAInterface;
 // Module data
 typedef struct
 {
-    // loc_eng_ioctl_cb_data_s_type   ioctl_cb_data;
+    boolean                        download_request_pending;
     gps_xtra_download_request      download_request_cb;
+    pthread_mutex_t                xtra_mutex;
 
 } loc_eng_xtra_data_s_type;
 
